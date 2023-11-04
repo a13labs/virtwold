@@ -20,8 +20,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt update
-          apt install libpcap0.8-dev
+          sudo apt update
+          sudo apt install libpcap0.8-dev
 
       - name: Get version
         id: get_version
