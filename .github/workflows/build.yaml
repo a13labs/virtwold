@@ -1,0 +1,57 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*" # Trigger on tags that start with 'v'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.20.7
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install libpcap0.8-dev
+
+      - name: Get version
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build for Linux
+        run: |
+          go build -o virtwold virtwold.go
+          zip virtwold-linux-x64.zip virtwold
+        env:
+          GOOS: linux
+          GOARCH: amd64
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: false
+      - name: Upload for Linux
+        id: upload_assets_linux_x64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: virtwold-linux-x64.zip
+          asset_name: virtwold-${{ steps.get_version.outputs.version }}-linux-x64.zip
+          asset_content_type: application/octet-stream
